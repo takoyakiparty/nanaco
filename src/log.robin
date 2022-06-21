@@ -1,0 +1,9 @@
+# Ver.1.0
+DateTime.GetCurrentDateTime.Local DateTimeFormat: DateTime.DateTimeFormat.DateAndTime CurrentDateTime=> CurrentDateTime
+WebAutomation.ExecuteJavascript BrowserInstance: logBrowser Javascript: $'''function ExecuteScript() { 
+const body = document.getElementsByTagName(\'body\')[0];
+body.innerText=
+ body.innerText + \'\\n\' + \'%CurrentDateTime% %msg%\';
+
+window.scrollTo(0, body.scrollHeight);
+}'''

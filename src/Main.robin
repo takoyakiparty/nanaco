@@ -1,0 +1,172 @@
+# Ver.1.0
+/# ブラウザがポップアップをデフォルトで禁止しているので、
+初回に失敗したらポップアップを許可しているか確認すること。#/
+/# 次の定数は、クリック後に次のステップに進むまでのスリープ秒数。
+他の手段でページ遷移を検知できるケースでは、使う必要はない。#/
+SET SLEEP_SEC_AFTER_CLICK TO 3
+WebAutomation.LaunchEdge.LaunchEdge Url: $'''https://takoyakiparty.github.io/nanaco/blank.html''' WindowState: WebAutomation.BrowserWindowState.Normal ClearCache: False ClearCookies: False Timeout: 60 BrowserInstance=> logBrowser
+WebAutomation.ExecuteJavascript BrowserInstance: logBrowser Javascript: $'''function ExecuteScript() { 
+const title = document.getElementsByTagName(\'title\')[0];
+title.innerText= \'七個 実況\';
+const body = document.getElementsByTagName(\'body\')[0];
+body.innerText= \'七個の動作を実況します。このウィンドウを閉じないでね。\';
+}'''
+SET msg TO $'''七個 行きます。'''
+CALL log
+Display.ShowMessageDialog.ShowMessage Title: $'''ログインしてね。''' Message: $'''次に表示されるnanacoサイトにログインしてね。
+2分以内に。''' Icon: Display.Icon.Information Buttons: Display.Buttons.OKCancel DefaultButton: Display.DefaultButton.Button1 IsTopMost: True ButtonPressed=> loginButtonPressed
+IF $'''%loginButtonPressed%%inputButtonPressed%''' = $'''Cancel''' THEN
+    SET msg TO $'''ユーザ指示により終了します。'''
+    CALL log
+    Display.ShowMessageDialog.ShowMessage Title: $'''終了します。''' Message: msg Icon: Display.Icon.Information Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: True
+    EXIT Code: 0
+END
+WebAutomation.LaunchEdge.LaunchEdge Url: $'''https://www.nanaco-net.jp/pc/emServlet''' WindowState: WebAutomation.BrowserWindowState.Normal ClearCache: False ClearCookies: False Timeout: 180 BrowserInstance=> mainBrowser
+WAIT (WebAutomation.WaitForWebPageContent.WebPageToContainText BrowserInstance: mainBrowser Text: $'''nanacoギフトのID登録ができます。''') FOR 120
+WebAutomation.ExecuteJavascript BrowserInstance: mainBrowser Javascript: $'''function ExecuteScript() {
+
+document.querySelector(\'#gift>a\').click();
+
+}''' Result=> Result
+Display.InputDialog Title: $'''登録したいnanacoギフトIDを入力してください。''' Message: $'''複数のnanacoギフトIDは改行で区切ってください。''' InputType: Display.InputType.Multiline IsTopMost: True UserInput=> giftIdsText ButtonPressed=> inputButtonPressed
+IF inputButtonPressed = $'''Cancel''' THEN
+    SET msg TO $'''ユーザ指示により終了します。'''
+    CALL log
+    Display.ShowMessageDialog.ShowMessage Title: $'''終了します。''' Message: msg Icon: Display.Icon.Information Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: True
+    EXIT Code: 0
+END
+Text.SplitText.SplitWithDelimiter Text: giftIdsText CustomDelimiter: $'''\\n''' IsRegEx: True Result=> inputGiftIdList
+Variables.CreateNewList List=> giftIdList
+# 次ループは入力値チェック
+LOOP FOREACH giftId IN inputGiftIdList
+    SWITCH giftId.Trimmed.Length
+        CASE = 0
+            NEXT LOOP
+        CASE = 16
+            Variables.AddItemToList Item: giftId.Trimmed List: giftIdList NewList=> giftIdList
+        DEFAULT
+            SET msg TO $'''16文字でない入力は誤り。nanacoギフトIDは16文字です。処理を終了します。入力値=%giftId.Trimmed%'''
+            CALL log
+            Display.ShowMessageDialog.ShowMessage Title: $'''異常終了''' Message: msg Icon: Display.Icon.ErrorIcon Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: True
+            EXIT Code: 0 ErrorMessage: msg
+    END
+END
+SET msg TO $'''ギフトIDを登録します。登録予定数＝%giftIdList.Count%'''
+CALL log
+SET successCount TO 0
+SET registeredCount TO 0
+SET registeringCount TO 0
+SET invalidIdCount TO 0
+SET n TO 0
+LOOP FOREACH giftId IN giftIdList
+    Variables.IncreaseVariable Value: n IncrementValue: 1 IncreasedValue=> n
+    Text.GetSubtext.GetSubtext Text: giftId CharacterPosition: 0 NumberOfChars: 4 Subtext=> giftIdPart1
+    Text.GetSubtext.GetSubtext Text: giftId CharacterPosition: 4 NumberOfChars: 4 Subtext=> giftIdPart2
+    Text.GetSubtext.GetSubtext Text: giftId CharacterPosition: 8 NumberOfChars: 4 Subtext=> giftIdPart3
+    Text.GetSubtext.GetSubtext Text: giftId CharacterPosition: 12 NumberOfChars: 4 Subtext=> giftIdPart4
+    WebAutomation.ExecuteJavascript BrowserInstance: mainBrowser Javascript: $'''function ExecuteScript() {
+
+document.querySelector(\'input[type=\"image\"]\').click();
+
+}'''
+    WebAutomation.LaunchEdge.AttachToEdgeByTitle TabTitle: $'''nanaco / ギフトID登録フォーム''' AttachTimeout: SLEEP_SEC_AFTER_CLICK BrowserInstance=> popupBrowser
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+const id = \'%giftIdPart1%\';
+document.getElementById(\'gift01\').value=id;
+
+}'''
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+const id = \'%giftIdPart2%\';
+document.getElementById(\'gift02\').value=id;
+
+}'''
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+const id = \'%giftIdPart3%\';
+document.getElementById(\'gift03\').value=id;
+
+}'''
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+const id = \'%giftIdPart4%\';
+document.getElementById(\'gift04\').value=id;
+
+}'''
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+document.getElementById(\'submit-button\').click();
+
+}'''
+    WAIT SLEEP_SEC_AFTER_CLICK
+    WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() { 
+
+return document.getElementsByTagName(\'body\')[0].innerText;
+
+}''' Result=> step1WebText
+    IF Contains(step1WebText, $'''「登録する」ボタンをクリックしてください。''', False) THEN
+        WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() {
+
+document.querySelector(\'input[alt=\"登録する\"\').click();
+
+}'''
+        WAIT SLEEP_SEC_AFTER_CLICK
+        WebAutomation.ExecuteJavascript BrowserInstance: popupBrowser Javascript: $'''function ExecuteScript() { 
+
+return document.getElementsByTagName(\'body\')[0].innerText;
+
+}''' Result=> step2WebText
+        IF Contains(step2WebText, $'''詳しくは次ページ【お受取り方法】をご確認ください''', False) THEN
+            Variables.IncreaseVariable Value: successCount IncrementValue: 1 IncreasedValue=> successCount
+            SET msg TO $'''[%n%/%giftIdList.Count%] 登録に成功しました。ギフトID=%giftId%'''
+            CALL log
+            WebAutomation.CloseWebBrowser BrowserInstance: popupBrowser
+            NEXT LOOP
+        ELSE
+            SET msg TO $'''[%n%/%giftIdList.Count%] 未知の状況のため、異常終了します。ギフトID=%giftId%'''
+            CALL log
+            Display.ShowMessageDialog.ShowMessage Title: $'''異常終了''' Message: msg Icon: Display.Icon.ErrorIcon Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: True
+            EXIT Code: 0 ErrorMessage: msg
+        END
+    ELSE IF Contains(step1WebText, $'''このギフトIDは、すでに下記の通り登録済です。''', False) THEN
+        Variables.IncreaseVariable Value: registeringCount IncrementValue: 1 IncreasedValue=> registeringCount
+        SET msg TO $'''[%n%/%giftIdList.Count%] 登録済、反映待ちのため登録できません。ギフトID=%giftId%'''
+        CALL log
+        WebAutomation.CloseWebBrowser BrowserInstance: popupBrowser
+        NEXT LOOP
+    ELSE IF Contains(step1WebText, $'''このギフトIDは既に登録されています。''', False) THEN
+        Variables.IncreaseVariable Value: registeredCount IncrementValue: 1 IncreasedValue=> registeredCount
+        SET msg TO $'''[%n%/%giftIdList.Count%] 使用済みのため登録できません。ギフトID=%giftId%'''
+        CALL log
+        WebAutomation.CloseWebBrowser BrowserInstance: popupBrowser
+        NEXT LOOP
+    ELSE IF Contains(step1WebText, $'''ギフトIDが正しく入力されていません。''', False) THEN
+        Variables.IncreaseVariable Value: invalidIdCount IncrementValue: 1 IncreasedValue=> invalidIdCount
+        SET msg TO $'''[%n%/%giftIdList.Count%] ギフトIDが不正なため登録できません。ギフトID=%giftId%'''
+        CALL log
+        WebAutomation.CloseWebBrowser BrowserInstance: popupBrowser
+        NEXT LOOP
+    END
+END
+WebAutomation.CloseWebBrowser BrowserInstance: mainBrowser
+SET msg TO $'''＊＊＊＊＊　結果報告　＊＊＊＊＊'''
+CALL log
+SET msg TO $'''登録予定数＝%giftIdList.Count%'''
+CALL log
+SET msg TO $'''登録成功数=%successCount%'''
+CALL log
+IF registeringCount >= 1 THEN
+    SET msg TO $'''登録失敗数(登録済、反映待ち)=%registeringCount%'''
+    CALL log
+END
+IF registeredCount >= 1 THEN
+    SET msg TO $'''登録失敗数(登録済、反映済)=%registeredCount%'''
+    CALL log
+END
+IF invalidIdCount >= 1 THEN
+    SET msg TO $'''登録失敗数(不正なギフトID)=%invalidIdCount%'''
+    CALL log
+END
+SET msg TO $'''＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊＊'''
+CALL log
