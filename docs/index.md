@@ -36,6 +36,6 @@
 1. 次のダイアログが表示されるのでOKを押す。<br>
 ![ログインを求めるダイアログ](https://takoyakiparty.github.io/nanaco/parts/dialog1.png)
 1. nanacoのサイトにnanaco番号等を入力しログインする。
-1. 次のダイアログが表示されるので、登録するギフトIDを貼り付ける。複数のギフトIDは改行で区切る。<br>
+1. 次のダイアログが表示されるので、登録するギフトID(16文字)を貼り付ける。複数のギフトIDは改行で区切る。<br>
 ![ギフトIDの入力を求めるダイアログ](https://takoyakiparty.github.io/nanaco/parts/dialog2.png)
 1. OKを押す。
